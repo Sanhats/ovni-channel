@@ -1,11 +1,11 @@
-"use client"
-
-import type React from "react"
+// components/auth/auth-provider.tsx
+'use client'
 
 import { createContext, useContext, useEffect, useState } from "react"
 import type { Session, User } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase/client"
 import type { Profile } from "@/types"
+import { signOutAction } from "@/lib/auth-actions"
 
 type AuthContextType = {
   user: User | null
@@ -55,6 +55,7 @@ export function AuthProvider({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event)
       setSession(session)
       setUser(session?.user ?? null)
     })
@@ -65,10 +66,8 @@ export function AuthProvider({
   }, [])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setSession(null)
-    setProfile(null)
+    // Use the server action for sign out
+    await signOutAction()
   }
 
   return <AuthContext.Provider value={{ user, profile, session, isLoading, signOut }}>{children}</AuthContext.Provider>
@@ -81,4 +80,3 @@ export function useAuth() {
   }
   return context
 }
-

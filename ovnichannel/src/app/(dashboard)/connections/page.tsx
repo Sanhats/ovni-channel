@@ -11,7 +11,7 @@ export default async function ConnectionsPage() {
     return <div>Loading user information...</div>
   }
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // Get all channels for the user
   const { data: channels } = await supabase

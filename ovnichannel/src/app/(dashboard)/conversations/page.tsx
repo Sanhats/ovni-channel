@@ -10,7 +10,7 @@ export default async function ConversationsPage() {
     return <div>Loading user information...</div>
   }
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // Get all conversations for the user
   const { data: conversations } = await supabase

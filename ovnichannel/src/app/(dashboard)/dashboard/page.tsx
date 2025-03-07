@@ -7,7 +7,7 @@ import { RecentMessages } from "@/components/dashboard/recent-messages"
 
 export default async function DashboardPage() {
   const user = await getUserDetails()
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   if (!user) {
     return <div>Loading user information...</div>

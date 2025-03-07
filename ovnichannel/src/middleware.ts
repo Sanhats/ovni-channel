@@ -1,31 +1,66 @@
-// src/middleware.ts
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+export async function middleware(request: NextRequest) {
+  try {
+    console.log("Middleware running for path:", request.nextUrl.pathname)
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    // Create a response object that we'll modify and return
+    const res = NextResponse.next()
 
-  // Si el usuario no está autenticado y está intentando acceder a una ruta protegida
-  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    const redirectUrl = new URL('/login', req.url);
-    redirectUrl.searchParams.set('redirect', req.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
+    // Create the Supabase client
+    const supabase = createMiddlewareClient({ req: request, res })
+
+    // Check if we have a session
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    console.log("Middleware session check:", !!session, session?.user?.email)
+
+    // If accessing a protected route without a session, redirect to login
+    const isProtectedRoute =
+      request.nextUrl.pathname.startsWith("/dashboard") ||
+      request.nextUrl.pathname.startsWith("/conversations") ||
+      request.nextUrl.pathname.startsWith("/connections") ||
+      request.nextUrl.pathname.startsWith("/settings")
+
+    const isAuthRoute =
+      request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/register")
+
+    // For debugging - add a custom header with auth status
+    res.headers.set("x-auth-status", session ? "authenticated" : "unauthenticated")
+
+    if (isProtectedRoute && !session) {
+      console.log("Middleware: Protected route accessed without session, redirecting to login")
+      const redirectUrl = new URL("/login", request.url)
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    if (session && isAuthRoute) {
+      console.log("Middleware: Auth route accessed with session, redirecting to dashboard")
+      const redirectUrl = new URL("/dashboard", request.url)
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    // Return the response with the session
+    return res
+  } catch (error) {
+    console.error("Middleware error:", error)
+    // Continue to the requested resource in case of error
+    return NextResponse.next()
   }
-
-  // Si el usuario está autenticado y está intentando acceder a la página de login
-  if (session && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/')) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
-  }
-
-  return res;
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
-};
+  matcher: [
+    "/dashboard/:path*",
+    "/conversations/:path*",
+    "/connections/:path*",
+    "/settings/:path*",
+    "/login",
+    "/register",
+  ],
+}
+
